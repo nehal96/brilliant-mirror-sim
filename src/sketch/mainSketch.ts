@@ -4,12 +4,43 @@ import {
   SceneElement,
   ViewerElement,
   MirrorElement,
+  PointCoords,
 } from "@/lib/types";
+import { calculateVirtualImagePosition } from "@/lib/simulation";
 
 // Define the props structure the sketch expects
 interface SketchProps {
   sceneConfig: SceneConfig;
 }
+
+// Draws a viewer element
+const drawViewer = (p: p5, element: ViewerElement) => {
+  p.fill(0, 0, 255); // Blue for viewer
+  p.noStroke();
+  // Use radius from config if available later, default to 15 diameter
+  const radius = element.radius || 7.5;
+  p.ellipse(element.position.x, element.position.y, radius * 2, radius * 2);
+};
+
+// Draws a mirror element
+const drawMirror = (p: p5, element: MirrorElement) => {
+  p.stroke(100); // Grey for mirror
+  p.strokeWeight(element.thickness || 3); // Use thickness from config or default
+  p.line(element.start.x, element.start.y, element.end.x, element.end.y);
+};
+
+// Draws the virtual image of the viewer
+const drawVirtualViewer = (
+  p: p5,
+  position: PointCoords,
+  originalViewer: ViewerElement
+) => {
+  p.stroke(0, 0, 255, 150); // Semi-transparent blue stroke
+  p.strokeWeight(1);
+  p.noFill(); // No fill for virtual image
+  const radius = originalViewer.radius || 7.5; // Match original viewer size
+  p.ellipse(position.x, position.y, radius * 2, radius * 2);
+};
 
 export const sketch = (p: p5) => {
   let currentSceneConfig: SceneConfig | null = null;
@@ -40,60 +71,58 @@ export const sketch = (p: p5) => {
   };
 
   p.draw = () => {
-    p.background(230); // Clear background on each frame
+    p.background(240); // Light grey background
 
-    // Draw elements if config exists
-    if (currentSceneConfig) {
-      currentSceneConfig.elements.forEach((element) => {
-        drawElement(p, element); // Call helper function to draw each element
-      });
-    } else {
-      // Fallback text if no config yet
-      p.fill(50);
+    if (!currentSceneConfig) {
+      // Maybe draw a loading message or return
+      p.fill(0);
       p.textAlign(p.CENTER, p.CENTER);
-      p.textSize(16);
-      p.text("Loading Scene...", p.width / 2, p.height / 2);
+      p.text("Loading scene...", canvasWidth / 2, canvasHeight / 2);
+      return;
     }
-  };
 
-  // Helper function to draw different element types
-  const drawElement = (p: p5, element: SceneElement) => {
-    switch (element.type) {
-      case "viewer":
-        drawViewer(p, element);
-        break;
-      case "mirror":
-        drawMirror(p, element);
-        break;
-      // Add cases for other element types later
-      default:
-        console.warn(`Unknown element type: ${(element as any).type}`);
+    const viewer = currentSceneConfig.elements.find(
+      (el): el is ViewerElement => el.type === "viewer"
+    );
+    const mirror = currentSceneConfig.elements.find(
+      (el): el is MirrorElement => el.type === "mirror"
+    );
+
+    // --- Draw Static Elements ---
+    currentSceneConfig.elements.forEach((element) => {
+      switch (element.type) {
+        case "viewer":
+          drawViewer(p, element as ViewerElement);
+          break;
+        case "mirror":
+          drawMirror(p, element as MirrorElement);
+          break;
+        // Add cases for other element types here
+        // default:
+        //   console.warn("Unknown element type:", element.type);
+      }
+    });
+
+    // --- Calculate and Draw Virtual Image ---
+    if (viewer && mirror) {
+      const virtualViewerPos = calculateVirtualImagePosition(
+        viewer.position,
+        mirror
+      );
+
+      if (virtualViewerPos) {
+        // Draw the virtual viewer using the dedicated function
+        drawVirtualViewer(p, virtualViewerPos, viewer);
+      }
     }
-  };
 
-  // Function to draw a ViewerElement
-  const drawViewer = (p: p5, viewer: ViewerElement) => {
-    const radius = viewer.radius ?? 10; // Default radius if not provided
-    p.push(); // Isolate drawing styles
-    p.fill(0, 0, 255); // Blue color for viewer
+    // Reset drawing styles for next frame if needed
+    p.strokeWeight(1);
     p.noStroke();
-    p.ellipse(viewer.position.x, viewer.position.y, radius * 2, radius * 2); // Draw circle
-    // Optional: Draw an 'eye' direction indicator if needed later
-    p.pop(); // Restore previous styles
+    p.fill(255); // Reset fill to default (white)
   };
 
-  // Function to draw a MirrorElement
-  const drawMirror = (p: p5, mirror: MirrorElement) => {
-    const thickness = mirror.thickness ?? 2; // Default thickness
-    p.push(); // Isolate drawing styles
-    p.stroke(100, 100, 100); // Grey color for mirror
-    p.strokeWeight(thickness);
-    p.line(mirror.start.x, mirror.start.y, mirror.end.x, mirror.end.y); // Draw line
-    // Optional: Add visual cue for reflective side later if needed
-    p.pop(); // Restore previous styles
-  };
-
-  // ... (optional windowResized) ...
+  // Add mousePressed, mouseDragged, mouseReleased later for Phase 3
 };
 
 // Extend p5 instance type definition to include our custom method

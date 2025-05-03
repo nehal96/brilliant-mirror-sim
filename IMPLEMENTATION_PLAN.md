@@ -29,11 +29,11 @@
 
 *   **Goal:** Calculate and display the virtual image, translating coordinates for library use.
 *   **Tasks:**
-    - [ ] Implement `calculateVirtualImagePosition(elementPosCoords: PointCoords, mirror: MirrorElement): PointCoords` in `lib/simulation.ts`:
-        - [ ] **Translate Input:** Convert `elementPosCoords`, `mirror.start`, `mirror.end` into `Flatten.Point` instances. Create `Flatten.Line` for the mirror.
-        - [ ] **Leverage `@flatten-js/core`:** Use verified library functions to calculate the reflection (`Flatten.Point`).
-        - [ ] **Translate Output:** Convert the resulting `Flatten.Point` back into `PointCoords` (`{ x, y }`).
-    - [ ] In p5 sketch: Calculate virtual viewer position (`PointCoords`); draw it (dotted) using its `.x`, `.y`.
+    - [x] Implement `calculateVirtualImagePosition(elementPosCoords: PointCoords, mirror: MirrorElement): PointCoords` in `lib/simulation.ts`:
+        - [x] **Translate Input:** Convert `elementPosCoords`, `mirror.start`, `mirror.end` into `Flatten.Point` instances. Create `Flatten.Line` for the mirror.
+        - [x] **Leverage `@flatten-js/core`:** Use verified library functions to calculate the reflection (`Flatten.Point`).
+        - [x] **Translate Output:** Convert the resulting `Flatten.Point` back into `PointCoords` (`{ x, y }`).
+    - [x] In p5 sketch: Calculate virtual viewer position (`PointCoords`); draw it (dotted) using its `.x`, `.y`.
 *   **Code Modules:** `lib/simulation.ts`, `lib/types.ts`, `sketch/mainSketch.ts`.
 *   **Commit:** `feat: Calculate and draw virtual viewer image using @flatten-js/core (with coord translation)`
 
