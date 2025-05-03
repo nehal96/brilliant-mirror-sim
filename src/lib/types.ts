@@ -40,6 +40,7 @@ export type RayPath = {
   objectPoint: PointCoords; // Starting point (object's position)
   mirrorPoint: PointCoords; // Reflection point on the mirror surface
   viewerPoint: PointCoords; // Ending point (viewer's position)
+  virtualObjectPoint: PointCoords; // Position of the virtual object used for calculation
 };
 
 // NEW Interface for Style Parameters
@@ -48,6 +49,7 @@ export interface StyleParams {
   objectColor?: number[];
   mirrorColor?: number[];
   rayColor?: number[];
+  virtualRayColor?: number[]; // NEW: Color for the virtual ray segment
   virtualViewerColor?: number[];
   virtualObjectColor?: number[];
   defaultViewerRadius?: number;

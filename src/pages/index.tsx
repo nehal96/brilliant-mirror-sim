@@ -45,6 +45,7 @@ export default function Home() {
       objectColor: [255, 0, 0], // Red
       mirrorColor: [100], // Grey
       rayColor: [243, 198, 35], // Dark Yellow
+      virtualRayColor: [260, 160, 0, 100], // NEW: Semi-transparent Dark Yellow
       virtualViewerColor: [0, 0, 255, 150], // Semi-transparent Blue
       virtualObjectColor: [255, 0, 0, 150], // Semi-transparent Red
       defaultViewerRadius: 7.5,
@@ -99,7 +100,6 @@ export default function Home() {
         />
       </main>
       <aside className="mt-8 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Controls</h2>
         <ControlPanel
           controls={sceneConfig.controls}
           onControlChange={handleControlChange}

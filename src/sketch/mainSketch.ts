@@ -182,6 +182,12 @@ const drawArrow = (
 const drawRayPath = (p: p5, rayPath: RayPath, config: SceneConfig | null) => {
   const rayColorValue = getStyle(config, "rayColor", [243, 198, 35]); // Default Dark Yellow
   const rayColor = p.color(rayColorValue); // Ensure it's a p5.Color object
+  const virtualRayColorValue = getStyle(
+    config,
+    "virtualRayColor",
+    [260, 160, 0, 100]
+  ); // Default Semi-transparent Dark Yellow
+  const virtualRayColor = p.color(virtualRayColorValue);
   const arrowSize = getStyle(config, "arrowSize", 8);
   const rayWeight = getStyle(config, "rayWeight", 1.5);
 
@@ -211,7 +217,26 @@ const drawRayPath = (p: p5, rayPath: RayPath, config: SceneConfig | null) => {
   // Draw arrow pointing to the viewer
   drawArrow(p, rayPath.mirrorPoint, rayPath.viewerPoint, rayColor, arrowSize);
 
-  p.pop(); // Restore previous styles
+  // --- Draw Dotted Virtual Ray Segment ---
+  // Use p5's 2D drawing context to set line dash
+  const ctx = p.drawingContext as CanvasRenderingContext2D;
+  ctx.save(); // Save current context state (like line style)
+  ctx.setLineDash([5, 5]); // Set dash pattern [dash length, gap length]
+  p.stroke(virtualRayColor); // Use the virtual ray color
+  p.strokeWeight(rayWeight * 0.8); // Optional: make dotted line slightly thinner
+
+  // Draw line from mirror point to virtual object point
+  p.line(
+    rayPath.mirrorPoint.x,
+    rayPath.mirrorPoint.y,
+    rayPath.virtualObjectPoint.x,
+    rayPath.virtualObjectPoint.y
+  );
+
+  // Restore context state (including solid line style)
+  ctx.restore();
+
+  p.pop(); // Restore previous p5 styles
 };
 
 export const sketch = (p: p5) => {

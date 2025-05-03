@@ -255,6 +255,7 @@ export function calculateSingleReflectionPath(
       objectPoint: objPosCoords, // Start at the actual object
       mirrorPoint: reflectionPointCoords, // Reflect off the calculated point on the mirror
       viewerPoint: viewPosCoords, // End at the actual viewer
+      virtualObjectPoint: virtualObjPosCoords, // Include the virtual object position
     };
 
     return path;
