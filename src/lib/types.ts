@@ -62,6 +62,7 @@ export interface StyleParams {
 
 export interface ControlParams {
   showRayPaths?: boolean;
+  showParallelMirrors?: boolean;
 }
 
 // Union type for any scene element

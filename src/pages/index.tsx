@@ -1,8 +1,16 @@
 import React, { useState, useCallback } from "react";
 import SimulationCanvas from "@/components/SimulationCanvas";
 import ControlPanel from "@/components/ControlPanel";
-import { SceneConfig, ControlParams } from "@/lib/types";
+import { SceneConfig, ControlParams, SceneElement } from "@/lib/types";
 import { Geist, Geist_Mono } from "next/font/google";
+import {
+  baseElements,
+  defaultCanvasSize,
+  defaultStyleParams,
+  defaultControls,
+  filterVisibleElements,
+  mergeAndPreservePositions,
+} from "@/config/sceneDefaults"; // Import defaults and helpers
 
 // Keep font setup
 const geistSans = Geist({
@@ -14,76 +22,67 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// No need to define baseElements, etc. here anymore
+
 export default function Home() {
-  const [sceneConfig, setSceneConfig] = useState<SceneConfig>({
-    elements: [
-      {
-        id: "viewer-1",
-        type: "viewer",
-        position: { x: 150, y: 200 },
-        radius: 10, // Specific radius overrides default
-      },
-      {
-        id: "mirror-1",
-        type: "mirror",
-        start: { x: 300, y: 50 },
-        end: { x: 300, y: 350 },
-        thickness: 5, // Specific thickness overrides default
-      },
-      {
-        id: "object-1",
-        type: "object",
-        position: { x: 150, y: 100 },
-        shape: "triangle",
-        radius: 8, // Specific radius overrides default
-      },
-    ],
-    canvasSize: { width: 600, height: 400 },
-    // Add default style parameters
-    styleParams: {
-      viewerColor: [0, 0, 255], // Blue
-      objectColor: [255, 0, 0], // Red
-      mirrorColor: [100], // Grey
-      rayColor: [243, 198, 35], // Dark Yellow
-      virtualRayColor: [260, 160, 0, 100], // NEW: Semi-transparent Dark Yellow
-      virtualViewerColor: [0, 0, 255, 150], // Semi-transparent Blue
-      virtualObjectColor: [255, 0, 0, 150], // Semi-transparent Red
-      defaultViewerRadius: 7.5,
-      defaultObjectRadius: 10,
-      defaultMirrorThickness: 3,
-      rayWeight: 1.5,
-      arrowSize: 8,
-      virtualImageStrokeWeight: 1,
-    },
-    // Add default control parameters
-    controls: {
-      showRayPaths: true,
-    },
+  const [sceneConfig, setSceneConfig] = useState<SceneConfig>(() => {
+    // Use the helper function for initial filtering
+    const initialElements = filterVisibleElements(
+      baseElements,
+      defaultControls
+    );
+
+    return {
+      elements: initialElements,
+      canvasSize: defaultCanvasSize,
+      styleParams: defaultStyleParams,
+      controls: defaultControls,
+    };
   });
 
-  // Define the callback function to update the state
+  // Callback for drag updates from p5 sketch
   const handleSceneUpdate = useCallback((newConfig: SceneConfig) => {
     console.log("React updating sceneConfig state (drag)...");
-    // Ensure controls are preserved during drag updates if not explicitly changed
+    // Preserve controls and styles when elements are updated by dragging
     setSceneConfig((prevConfig) => ({
-      ...newConfig,
+      ...newConfig, // Takes the updated elements array from the sketch
       controls: prevConfig.controls, // Keep existing controls
       styleParams: prevConfig.styleParams, // Keep existing styles
     }));
-  }, []); // Empty dependency array means the function reference is stable
+  }, []);
 
+  // Callback for control panel updates (now much simpler)
   const handleControlChange = useCallback(
     (controlUpdates: Partial<ControlParams>) => {
       console.log("React updating controls state...");
-      setSceneConfig((prevConfig) => ({
-        ...prevConfig,
-        controls: {
-          ...(prevConfig.controls || {}), // Keep existing controls
+      setSceneConfig((prevConfig) => {
+        // 1. Determine the next control state
+        const newControls = {
+          ...(prevConfig.controls || defaultControls), // Start with previous or default
           ...controlUpdates, // Apply updates
-        },
-      }));
+        };
+
+        // 2. Determine which elements should be visible based on *new* controls
+        const nextVisibleBaseElements = filterVisibleElements(
+          baseElements,
+          newControls
+        );
+
+        // 3. Merge the next visible elements with current state to preserve positions
+        const finalElements = mergeAndPreservePositions(
+          prevConfig.elements,
+          nextVisibleBaseElements
+        );
+
+        // 4. Return the new state
+        return {
+          ...prevConfig, // Keep canvasSize, styleParams
+          elements: finalElements,
+          controls: newControls,
+        };
+      });
     },
-    []
+    [] // No dependencies needed as helpers are pure and baseElements is constant
   );
 
   return (
@@ -109,7 +108,7 @@ export default function Home() {
         </pre>
       </aside>
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Phase 8: UI Controls (Ray Path Toggle).</p>
+        <p>Phase 9: Parallel Mirrors Toggle.</p>
       </footer>
     </div>
   );

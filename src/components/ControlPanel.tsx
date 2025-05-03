@@ -14,23 +14,51 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     onControlChange({ showRayPaths: event.target.checked }); // Call onControlChange
   };
 
-  // Default to true if controls or showRayPaths is undefined
-  const showRayPaths = controls?.showRayPaths ?? true; // Read from controls prop
+  const handleParallelMirrorsChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    onControlChange({ showParallelMirrors: event.target.checked }); // Update parallel mirrors flag
+  };
+
+  // Default values if controls or specific flags are undefined
+  const showRayPaths = controls?.showRayPaths ?? true;
+  const showParallelMirrors = controls?.showParallelMirrors ?? false; // Default to false
 
   return (
     <div className="p-4 border border-dashed border-gray-400 rounded">
       <h2 className="text-xl font-semibold mb-4">Controls</h2>
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="showRayPaths"
-          checked={showRayPaths}
-          onChange={handleShowRaysChange}
-          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-        />
-        <label htmlFor="showRayPaths" className="text-sm text-gray-700">
-          Show Ray Paths
-        </label>
+      <div className="space-y-3">
+        {" "}
+        {/* Add spacing between controls */}
+        {/* Show Ray Paths Toggle */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="showRayPaths"
+            checked={showRayPaths}
+            onChange={handleShowRaysChange}
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="showRayPaths" className="text-sm text-gray-700">
+            Show Ray Paths
+          </label>
+        </div>
+        {/* Parallel Mirrors Toggle */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="showParallelMirrors"
+            checked={showParallelMirrors}
+            onChange={handleParallelMirrorsChange}
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <label
+            htmlFor="showParallelMirrors"
+            className="text-sm text-gray-700"
+          >
+            Enable Parallel Mirrors
+          </label>
+        </div>
       </div>
       {/* Add more controls here later */}
     </div>
