@@ -18,10 +18,10 @@
 
 *   **Goal:** Define and render a static viewer and mirror from `SceneConfig` using `PointCoords`.
 *   **Tasks:**
-    - [ ] Expand types in `types.ts` for `ViewerElement` (using `position: PointCoords`) and `MirrorElement` (using `start: PointCoords`, `end: PointCoords`).
-    - [ ] Update `SceneConfig` type.
-    - [ ] Create default `sceneConfig` with one viewer, one mirror using `{x, y}` objects.
-    - [ ] Modify p5 sketch to loop through elements: Draw viewers and mirrors using `.x`, `.y` directly from the `PointCoords` objects in the config.
+    - [x] Expand types in `types.ts` for `ViewerElement` (using `position: PointCoords`) and `MirrorElement` (using `start: PointCoords`, `end: PointCoords`).
+    - [x] Update `SceneConfig` type.
+    - [x] Create default `sceneConfig` with one viewer, one mirror using `{x, y}` objects.
+    - [x] Modify p5 sketch to loop through elements: Draw viewers and mirrors using `.x`, `.y` directly from the `PointCoords` objects in the config.
 *   **Code Modules:** `lib/types.ts`, `sketch/mainSketch.ts`, `pages/index.tsx`.
 *   **Commit:** `feat: Render static viewer and mirror elements from SceneConfig using PointCoords`
 
