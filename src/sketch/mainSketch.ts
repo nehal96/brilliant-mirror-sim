@@ -13,6 +13,7 @@ import {
   calculateVirtualImagePosition,
   calculateVirtualObject,
   calculateSingleReflectionPath,
+  isPointProjectedOnSegment,
 } from "@/lib/simulation";
 
 // Define the props structure the sketch expects
@@ -318,21 +319,30 @@ export const sketch = (p: p5) => {
       }
     });
 
-    // --- Calculate and Draw Virtual Viewer (depends only on viewer and mirror) ---
+    // --- Calculate and Conditionally Draw Virtual Viewer ---
     if (viewer && mirror) {
+      // Calculate the potential position first
       const virtualViewerPos = calculateVirtualImagePosition(
         viewer.position,
         mirror
       );
-      if (virtualViewerPos) {
-        drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig); // Pass config
+
+      // *NEW*: Check if the viewer's projection is on the mirror segment
+      const viewerSeesMirror = isPointProjectedOnSegment(
+        viewer.position,
+        mirror.start,
+        mirror.end
+      );
+
+      // Only draw if the position exists AND the viewer sees the mirror segment
+      if (virtualViewerPos && viewerSeesMirror) {
+        drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig);
       }
     }
 
     // --- Calculate Ray Path and Conditionally Draw Virtual Object & Rays ---
     const shouldShowRays = currentSceneConfig.controls?.showRayPaths ?? true;
 
-    // Calculate the ray path first (if elements exist)
     let rayPath: RayPath | null = null;
     if (object && viewer && mirror) {
       rayPath = calculateSingleReflectionPath(
@@ -342,18 +352,15 @@ export const sketch = (p: p5) => {
       );
     }
 
-    // Only draw the virtual object if a valid ray path exists
     if (rayPath && object && mirror) {
-      // Need object & mirror again for calculation
       const virtualObject = calculateVirtualObject(object, mirror);
       if (virtualObject) {
-        drawVirtualObject(p, virtualObject, currentSceneConfig); // Pass config
+        drawVirtualObject(p, virtualObject, currentSceneConfig);
       }
     }
 
-    // Only draw the ray path if it exists AND the control is enabled
     if (shouldShowRays && rayPath) {
-      drawRayPath(p, rayPath, currentSceneConfig); // Pass config
+      drawRayPath(p, rayPath, currentSceneConfig);
     }
 
     // Reset drawing styles for next frame if needed

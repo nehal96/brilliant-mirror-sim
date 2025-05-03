@@ -1,4 +1,4 @@
-import { Point, Segment, Line, Vector } from "@flatten-js/core"; // Import Vector
+import { Point, Segment, Line, Vector, Utils } from "@flatten-js/core"; // Import Vector and Utils
 import {
   PointCoords,
   MirrorElement,
@@ -262,6 +262,70 @@ export function calculateSingleReflectionPath(
   } catch (error) {
     console.error("Error calculating single reflection path:", error);
     return null; // Return null on any calculation error
+  }
+}
+
+/**
+ * Checks if the perpendicular projection of a point onto the infinite line
+ * containing a segment falls within the bounds of that segment.
+ *
+ * @param pointCoords The coordinates of the point to check.
+ * @param segmentStartCoords The start coordinates of the segment.
+ * @param segmentEndCoords The end coordinates of the segment.
+ * @returns True if the projection lies on the segment, false otherwise.
+ */
+export function isPointProjectedOnSegment(
+  pointCoords: PointCoords,
+  segmentStartCoords: PointCoords,
+  segmentEndCoords: PointCoords
+): boolean {
+  try {
+    // --- Translate Input ---
+    const point = new Point(pointCoords.x, pointCoords.y);
+    const segmentStart = new Point(segmentStartCoords.x, segmentStartCoords.y);
+    const segmentEnd = new Point(segmentEndCoords.x, segmentEndCoords.y);
+
+    // Handle zero-length segment case
+    if (segmentStart.equalTo(segmentEnd)) {
+      console.warn("Segment has zero length.");
+      return point.equalTo(segmentStart); // Point is on segment only if it matches the single point
+    }
+
+    const segmentLine = new Line(segmentStart, segmentEnd);
+    const segment = new Segment(segmentStart, segmentEnd);
+
+    // --- Calculate Projection ---
+    // Find the line perpendicular to the segment line passing through the point
+    const perpendicularNormal = new Vector(
+      -segmentLine.norm.y,
+      segmentLine.norm.x
+    );
+    const perpendicularLine = new Line(point, perpendicularNormal);
+
+    // Find the intersection point (projection)
+    const intersectionPoints: Point[] =
+      segmentLine.intersect(perpendicularLine);
+
+    if (intersectionPoints.length === 0) {
+      // This might happen if the point is already on the line
+      if (segmentLine.contains(point)) {
+        // If the point is on the line, check if it's within the segment bounds
+        return segment.contains(point);
+      }
+      // Should not happen for non-parallel lines otherwise, but handle defensively
+      console.warn("Could not find projection intersection.");
+      return false;
+    }
+
+    const projectionPoint: Point = intersectionPoints[0];
+
+    // --- Check if Projection is on Segment ---
+    // Use segment.contains() which checks if the point lies geometrically on the segment.
+    // Add a tolerance check for floating-point inaccuracies.
+    return segment.contains(projectionPoint);
+  } catch (error) {
+    console.error("Error checking point projection on segment:", error);
+    return false;
   }
 }
 
