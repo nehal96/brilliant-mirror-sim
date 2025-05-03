@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import SimulationCanvas from "@/components/SimulationCanvas";
 import { SceneConfig, ViewerElement, MirrorElement } from "@/lib/types";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -34,6 +34,12 @@ export default function Home() {
     canvasSize: { width: 600, height: 400 }, // Pass canvas size if sketch needs it
   });
 
+  // Define the callback function to update the state
+  const handleSceneUpdate = useCallback((newConfig: SceneConfig) => {
+    console.log("React updating sceneConfig state...");
+    setSceneConfig(newConfig);
+  }, []); // Empty dependency array means the function reference is stable
+
   return (
     <div
       className={`${geistSans.className} ${geistMono.className} flex flex-col items-center justify-start min-h-screen p-8 pt-12`}
@@ -42,7 +48,10 @@ export default function Home() {
         <h1 className="text-3xl font-bold text-center">Mirror Simulation</h1>
       </header>
       <main className="border border-gray-300 shadow-lg">
-        <SimulationCanvas sceneConfig={sceneConfig} />
+        <SimulationCanvas
+          sceneConfig={sceneConfig}
+          onSceneUpdate={handleSceneUpdate}
+        />
       </main>
       <aside className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-4">Controls</h2>
@@ -54,7 +63,7 @@ export default function Home() {
         </div>
       </aside>
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Phase 1: Static Elements Rendered.</p>
+        <p>Phase 3: Viewer Dragging Implemented.</p>
       </footer>
     </div>
   );

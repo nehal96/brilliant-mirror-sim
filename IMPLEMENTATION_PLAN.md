@@ -41,19 +41,15 @@
 
 *   **Goal:** Allow dragging viewer with boundary checks and drag-end state updates, using `PointCoords`.
 *   **Tasks:**
-    - [ ] Use React state (`useState`) for `sceneConfig` (containing `PointCoords`). Pass state and setter down.
-    - [ ] **Implement Drag Logic (p5 sketch or hook):**
-        - [ ] Internal State: `isDragging`, `draggedElementId`, `currentDragPosition: PointCoords | null`.
-        - [ ] `mousePressed`: Identify element, set internal state. Store initial side relative to mirrors.
-        - [ ] `mouseDragged`:
-            - [ ] Calculate proposed `nextPosCoords: PointCoords`.
-            - [ ] **Boundary Check:** **Translate `nextPosCoords` to a temporary `Flatten.Point`**. Verify against all mirrors using `@flatten-js/core` side-of-line checks.
-            - [ ] If valid, update internal state `currentDragPosition` (as `PointCoords`).
-            - [ ] Do NOT call `setSceneConfig`.
-        - [ ] `mouseReleased`: If `isDragging`, update `sceneConfig` copy with final `currentDragPosition` (`PointCoords`). Call `setSceneConfig`. Reset internal drag state.
-    - [ ] Modify p5 `draw` loop: If dragging, draw element using `currentDragPosition.x`, `.y`, else use `sceneConfig`. Dependent calculations use `sceneConfig` state.
-*   **Code Modules:** `pages/index.tsx`, `components/SimulationCanvas.tsx`, `sketch/mainSketch.ts`, `hooks/useDraggableElement.ts`.
-*   **Commit:** `feat: Enable dragging viewer with boundary checks and state update on drag end (using PointCoords)`
+    - [x] Use React state (`useState`) for `sceneConfig` (containing `PointCoords`). Pass state and setter down.
+    - [x] **Implement Basic Drag Logic (p5 sketch):**
+        - [x] Internal State: `isDraggingViewer`, `dragOffset`, `viewerWasDragged`.
+        - [x] `mousePressed`: Identify viewer, set internal state.
+        - [x] `mouseDragged`: Calculate `nextPosCoords`, apply canvas constraints, update internal `currentSceneConfig.viewer.position`.
+        - [x] `mouseReleased`: If `viewerWasDragged`, create deep copy of `currentSceneConfig`, call `onSceneUpdate` callback (passed via props). Reset internal drag state.
+    - [ ] **TODO:** Implement correct mirror boundary check in `mouseDragged` using `@flatten-js/core`.
+*   **Code Modules:** `pages/index.tsx`, `components/SimulationCanvas.tsx`, `sketch/mainSketch.ts`.
+*   **Commit:** `feat: Enable basic dragging for viewer with state update on drag end`
 
 ## Phase 4: Adding the Object
 

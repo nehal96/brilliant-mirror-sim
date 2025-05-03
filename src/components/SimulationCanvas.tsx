@@ -4,11 +4,15 @@ import { SceneConfig } from "@/lib/types";
 
 interface SimulationCanvasProps {
   sceneConfig: SceneConfig;
+  onSceneUpdate: (newConfig: SceneConfig) => void;
 }
 
-const SimulationCanvas: React.FC<SimulationCanvasProps> = ({ sceneConfig }) => {
+const SimulationCanvas: React.FC<SimulationCanvasProps> = ({
+  sceneConfig,
+  onSceneUpdate,
+}) => {
   const sketchContainerRef = useRef<HTMLDivElement>(null);
-  const p5InstanceRef = useRef<p5 | null>(null); // Use p5 type
+  const p5InstanceRef = useRef<p5 | null>(null);
 
   useEffect(() => {
     let p5Instance: p5 | null = null;
@@ -32,6 +36,7 @@ const SimulationCanvas: React.FC<SimulationCanvasProps> = ({ sceneConfig }) => {
               if ("updateWithProps" in p5Instance) {
                 (p5Instance as p5 & p5.p5InstanceExtensions).updateWithProps({
                   sceneConfig,
+                  onSceneUpdate,
                 });
               }
 
@@ -53,15 +58,15 @@ const SimulationCanvas: React.FC<SimulationCanvasProps> = ({ sceneConfig }) => {
     };
   }, []); // Empty dependency array: runs only once on mount
 
-  // Effect to update the sketch when sceneConfig prop changes
+  // Effect to update the sketch when sceneConfig or onSceneUpdate changes
   useEffect(() => {
     if (p5InstanceRef.current && "updateWithProps" in p5InstanceRef.current) {
-      // Pass updated props to the running p5 instance
       (p5InstanceRef.current as p5 & p5.p5InstanceExtensions).updateWithProps({
         sceneConfig,
+        onSceneUpdate,
       });
     }
-  }, [sceneConfig]); // Re-run this effect if sceneConfig changes
+  }, [sceneConfig, onSceneUpdate]); // Add onSceneUpdate to dependencies
 
   return (
     <div ref={sketchContainerRef} className="simulation-canvas-container" />

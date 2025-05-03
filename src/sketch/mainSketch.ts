@@ -11,6 +11,7 @@ import { calculateVirtualImagePosition } from "@/lib/simulation";
 // Define the props structure the sketch expects
 interface SketchProps {
   sceneConfig: SceneConfig;
+  onSceneUpdate?: (newConfig: SceneConfig) => void; // Add optional callback
 }
 
 // Draws a viewer element
@@ -42,32 +43,56 @@ const drawVirtualViewer = (
   p.ellipse(position.x, position.y, radius * 2, radius * 2);
 };
 
+// Helper function to get line equation Ax + By + C = 0 from two points
+const getLineEquation = (
+  start: PointCoords,
+  end: PointCoords
+): { A: number; B: number; C: number } => {
+  const A = end.y - start.y;
+  const B = start.x - end.x;
+  const C = A * start.x + B * start.y;
+  return { A, B, C };
+};
+
 export const sketch = (p: p5) => {
   let currentSceneConfig: SceneConfig | null = null;
   let canvasWidth = 600; // Default width
   let canvasHeight = 400; // Default height
+  let onSceneUpdateCallback: ((newConfig: SceneConfig) => void) | null = null; // Store the callback
+
+  // --- State for Dragging ---
+  let isDraggingViewer = false;
+  let dragOffset: PointCoords = { x: 0, y: 0 }; // Offset from mouse to viewer center
+  let viewerWasDragged = false; // Flag to track if a drag actually happened
 
   // Function for React component to update sketch props
   p.updateWithProps = (props: SketchProps) => {
     if (props.sceneConfig) {
-      currentSceneConfig = props.sceneConfig;
-      // Update canvas size if provided in config
+      // Only update if the incoming config is different (simple check)
+      // This prevents overwriting the sketch's state during a drag
+      if (!isDraggingViewer) {
+        currentSceneConfig = props.sceneConfig;
+      }
+      // Update canvas size if provided
       if (props.sceneConfig.canvasSize) {
         canvasWidth = props.sceneConfig.canvasSize.width;
         canvasHeight = props.sceneConfig.canvasSize.height;
-        // Check if canvas exists before resizing
-        if (p.canvas) {
+        if (
+          p.canvas &&
+          (p.width !== canvasWidth || p.height !== canvasHeight)
+        ) {
           p.resizeCanvas(canvasWidth, canvasHeight);
         }
       }
     }
+    // Store the callback function
+    onSceneUpdateCallback = props.onSceneUpdate || null;
   };
 
   p.setup = () => {
-    p.createCanvas(canvasWidth, canvasHeight); // Use dynamic size
-    p.background(230); // Light grey background
+    p.createCanvas(canvasWidth, canvasHeight);
+    p.background(230);
     console.log("p5 setup complete");
-    // p.noLoop(); // Uncomment if the sketch should only draw once initially
   };
 
   p.draw = () => {
@@ -97,9 +122,6 @@ export const sketch = (p: p5) => {
         case "mirror":
           drawMirror(p, element as MirrorElement);
           break;
-        // Add cases for other element types here
-        // default:
-        //   console.warn("Unknown element type:", element.type);
       }
     });
 
@@ -111,7 +133,6 @@ export const sketch = (p: p5) => {
       );
 
       if (virtualViewerPos) {
-        // Draw the virtual viewer using the dedicated function
         drawVirtualViewer(p, virtualViewerPos, viewer);
       }
     }
@@ -119,10 +140,77 @@ export const sketch = (p: p5) => {
     // Reset drawing styles for next frame if needed
     p.strokeWeight(1);
     p.noStroke();
-    p.fill(255); // Reset fill to default (white)
+    p.fill(255);
   };
 
-  // Add mousePressed, mouseDragged, mouseReleased later for Phase 3
+  // --- Mouse Interaction Handlers ---
+
+  p.mousePressed = () => {
+    if (!currentSceneConfig) return;
+    viewerWasDragged = false; // Reset drag flag
+
+    const viewer = currentSceneConfig.elements.find(
+      (el): el is ViewerElement => el.type === "viewer"
+    );
+
+    if (viewer) {
+      const radius = viewer.radius || 7.5;
+      const d = p.dist(
+        p.mouseX,
+        p.mouseY,
+        viewer.position.x,
+        viewer.position.y
+      );
+
+      if (d < radius) {
+        isDraggingViewer = true;
+        dragOffset.x = viewer.position.x - p.mouseX;
+        dragOffset.y = viewer.position.y - p.mouseY;
+      }
+    }
+  };
+
+  p.mouseDragged = () => {
+    if (isDraggingViewer) {
+      const viewer = currentSceneConfig?.elements.find(
+        (el): el is ViewerElement => el.type === "viewer"
+      );
+      // No need to find the mirror for basic dragging
+
+      if (viewer) {
+        // 1. Calculate potential next position
+        let nextX = p.mouseX + dragOffset.x;
+        let nextY = p.mouseY + dragOffset.y;
+
+        // 2. Apply canvas boundary constraints
+        nextX = p.constrain(nextX, 0, canvasWidth);
+        nextY = p.constrain(nextY, 0, canvasHeight);
+
+        // 3. Update viewer position directly (no mirror check)
+        viewer.position.x = nextX;
+        viewer.position.y = nextY;
+        viewerWasDragged = true; // Mark that a drag occurred
+      }
+    }
+  };
+
+  p.mouseReleased = () => {
+    // If we were dragging the viewer and a drag actually happened,
+    // notify the React component to update its state.
+    if (
+      isDraggingViewer &&
+      viewerWasDragged &&
+      onSceneUpdateCallback &&
+      currentSceneConfig
+    ) {
+      // Pass a deep copy to avoid potential mutation issues if React holds onto the same object reference
+      const configToSend = JSON.parse(JSON.stringify(currentSceneConfig));
+      onSceneUpdateCallback(configToSend);
+    }
+    // Stop dragging
+    isDraggingViewer = false;
+    viewerWasDragged = false; // Reset flag
+  };
 };
 
 // Extend p5 instance type definition to include our custom method
