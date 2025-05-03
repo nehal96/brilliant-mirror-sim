@@ -236,20 +236,16 @@ export const sketch = (p: p5) => {
   let onSceneUpdateCallback: ((newConfig: SceneConfig) => void) | null = null; // Store the callback
 
   // --- State for Dragging ---
-  let draggedElementId: string | null = null; // NEW: Store ID of dragged element
-  let dragOffset: PointCoords = { x: 0, y: 0 }; // Offset from mouse to element center
-  let elementWasDragged = false; // NEW: Flag to track if a drag actually happened
+  let draggedElementId: string | null = null;
+  let dragOffset: PointCoords = { x: 0, y: 0 };
+  let elementWasDragged = false;
 
   // Function for React component to update sketch props
   p.updateWithProps = (props: SketchProps) => {
     if (props.sceneConfig) {
-      // Only update if the incoming config is different (simple check)
-      // This prevents overwriting the sketch's state during a drag
       if (!draggedElementId) {
-        // Check if *any* element is being dragged
         currentSceneConfig = props.sceneConfig as SceneConfig;
       }
-      // Update canvas size if provided
       if (props.sceneConfig.canvasSize) {
         canvasWidth = props.sceneConfig.canvasSize.width;
         canvasHeight = props.sceneConfig.canvasSize.height;
@@ -261,7 +257,6 @@ export const sketch = (p: p5) => {
         }
       }
     }
-    // Store the callback function
     onSceneUpdateCallback = props.onSceneUpdate || null;
   };
 
@@ -275,25 +270,27 @@ export const sketch = (p: p5) => {
     p.background(240); // Light grey background
 
     if (!currentSceneConfig) {
-      // Maybe draw a loading message or return
       p.fill(0);
       p.textAlign(p.CENTER, p.CENTER);
       p.text("Loading scene...", canvasWidth / 2, canvasHeight / 2);
       return;
     }
 
-    // Pass currentSceneConfig to drawing functions
+    // --- Find Core Elements ---
     const viewer = currentSceneConfig.elements.find(
       (el): el is ViewerElement => el.type === "viewer"
-    );
-    const mirror = currentSceneConfig.elements.find(
-      (el): el is MirrorElement => el.type === "mirror"
     );
     const object = currentSceneConfig.elements.find(
       (el): el is ObjectElement => el.type === "object"
     );
+    // Find *all* mirrors
+    const mirrors = currentSceneConfig.elements.filter(
+      (el): el is MirrorElement => el.type === "mirror"
+    );
+    // Get the first mirror for potentially drawing ray lines
+    const firstMirror = mirrors.length > 0 ? mirrors[0] : undefined;
 
-    // --- Draw Static Elements ---
+    // --- Draw All Base Elements Present in Config ---
     currentSceneConfig.elements.forEach((element) => {
       switch (element.type) {
         case "viewer":
@@ -308,48 +305,54 @@ export const sketch = (p: p5) => {
       }
     });
 
-    // --- Calculate and Conditionally Draw Virtual Viewer ---
-    if (viewer && mirror) {
-      // Calculate the potential position first
-      const virtualViewerPos = calculateVirtualImagePosition(
-        viewer.position,
-        mirror
-      );
-
-      // *NEW*: Check if the viewer's projection is on the mirror segment
-      const viewerSeesMirror = isPointProjectedOnSegment(
-        viewer.position,
-        mirror.start,
-        mirror.end
-      );
-
-      // Only draw if the position exists AND the viewer sees the mirror segment
-      if (virtualViewerPos && viewerSeesMirror) {
-        drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig);
-      }
+    // --- Calculate and Draw Virtual Viewers for ALL Mirrors ---
+    // (Virtual viewer visibility depends only on viewer position relative to mirror)
+    if (viewer) {
+      mirrors.forEach((mirror) => {
+        const virtualViewerPos = calculateVirtualImagePosition(
+          viewer.position,
+          mirror
+        );
+        const viewerSeesMirror = isPointProjectedOnSegment(
+          viewer.position,
+          mirror.start,
+          mirror.end
+        );
+        if (virtualViewerPos && viewerSeesMirror) {
+          drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig);
+        }
+      });
     }
 
-    // --- Calculate Ray Path and Conditionally Draw Virtual Object & Rays ---
-    const shouldShowRays = currentSceneConfig.controls?.showRayPaths ?? true;
+    // --- Calculate Ray Paths and Conditionally Draw Virtual Objects & Ray Lines ---
+    if (viewer && object) {
+      const shouldShowRays = currentSceneConfig.controls?.showRayPaths ?? true;
 
-    let rayPath: RayPath | null = null;
-    if (object && viewer && mirror) {
-      rayPath = calculateSingleReflectionPath(
-        object.position,
-        viewer.position,
-        mirror
-      );
-    }
+      mirrors.forEach((mirror) => {
+        // Calculate the potential ray path for this mirror
+        const rayPath = calculateSingleReflectionPath(
+          object.position,
+          viewer.position,
+          mirror // Use the current mirror in the loop
+        );
 
-    if (rayPath && object && mirror) {
-      const virtualObject = calculateVirtualObject(object, mirror);
-      if (virtualObject) {
-        drawVirtualObject(p, virtualObject, currentSceneConfig);
-      }
-    }
+        // If a valid path exists (meaning the viewer can see the virtual object via this mirror)
+        if (rayPath) {
+          // Calculate the virtual object for this mirror
+          const virtualObject = calculateVirtualObject(object, mirror);
+          if (virtualObject) {
+            // Draw the virtual object because it's visible to the viewer via this mirror
+            drawVirtualObject(p, virtualObject, currentSceneConfig);
+          }
 
-    if (shouldShowRays && rayPath) {
-      drawRayPath(p, rayPath, currentSceneConfig);
+          // Additionally, if ray paths are enabled AND this is the first mirror, draw the path lines
+          if (shouldShowRays && mirror.id === firstMirror?.id) {
+            drawRayPath(p, rayPath, currentSceneConfig);
+          }
+        }
+        // If rayPath is null, the viewer cannot see the virtual object formed by this mirror,
+        // so we draw neither the virtual object nor the ray path for it.
+      });
     }
 
     // Reset drawing styles for next frame if needed
@@ -362,13 +365,11 @@ export const sketch = (p: p5) => {
 
   p.mousePressed = () => {
     if (!currentSceneConfig) return;
-    elementWasDragged = false; // Reset drag flag
-    draggedElementId = null; // Reset dragged element
+    elementWasDragged = false;
+    draggedElementId = null;
 
-    // Find which element (viewer or object) is clicked
     for (const element of currentSceneConfig.elements) {
       if (element.type === "viewer" || element.type === "object") {
-        // Use radius for click detection (ensure object has a radius)
         const radius = element.radius || (element.type === "viewer" ? 7.5 : 10);
         const d = p.dist(
           p.mouseX,
@@ -378,57 +379,47 @@ export const sketch = (p: p5) => {
         );
 
         if (d < radius) {
-          draggedElementId = element.id; // Store the ID of the clicked element
+          draggedElementId = element.id;
           dragOffset.x = element.position.x - p.mouseX;
           dragOffset.y = element.position.y - p.mouseY;
-          return; // Stop checking once an element is found
+          return;
         }
       }
     }
   };
 
   p.mouseDragged = () => {
-    // Check if we are dragging *any* element
     if (draggedElementId && currentSceneConfig) {
-      // Find the element being dragged
       const elementToDrag = currentSceneConfig.elements.find(
         (el) => el.id === draggedElementId
       );
 
-      // Check if the element exists and has a position (viewer or object)
       if (elementToDrag && "position" in elementToDrag) {
-        // 1. Calculate potential next position
         let nextX = p.mouseX + dragOffset.x;
         let nextY = p.mouseY + dragOffset.y;
 
-        // 2. Apply canvas boundary constraints
         nextX = p.constrain(nextX, 0, canvasWidth);
         nextY = p.constrain(nextY, 0, canvasHeight);
 
-        // 3. Update the element's position directly
         elementToDrag.position.x = nextX;
         elementToDrag.position.y = nextY;
-        elementWasDragged = true; // Mark that a drag occurred
+        elementWasDragged = true;
       }
     }
   };
 
   p.mouseReleased = () => {
-    // If we were dragging an element and a drag actually happened,
-    // notify the React component to update its state.
     if (
       draggedElementId &&
       elementWasDragged &&
       onSceneUpdateCallback &&
       currentSceneConfig
     ) {
-      // Pass a deep copy to avoid potential mutation issues if React holds onto the same object reference
       const configToSend = JSON.parse(JSON.stringify(currentSceneConfig));
       onSceneUpdateCallback(configToSend);
     }
-    // Stop dragging
     draggedElementId = null;
-    elementWasDragged = false; // Reset flag
+    elementWasDragged = false;
   };
 };
 
