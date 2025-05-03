@@ -8,6 +8,7 @@ import {
   PointCoords,
   VirtualObjectElement,
   RayPath,
+  StyleParams,
 } from "@/lib/types";
 import {
   calculateVirtualImagePosition,
@@ -21,27 +22,53 @@ interface SketchProps {
   onSceneUpdate?: (newConfig: SceneConfig) => void; // Add optional callback
 }
 
+// Helper to get style param or default
+const getStyle = <K extends keyof StyleParams>(
+  config: SceneConfig | null,
+  key: K,
+  defaultValue: NonNullable<StyleParams[K]>
+): NonNullable<StyleParams[K]> => {
+  return config?.styleParams?.[key] ?? defaultValue;
+};
+
 // Draws a viewer element
-const drawViewer = (p: p5, element: ViewerElement) => {
-  p.fill(0, 0, 255); // Blue for viewer
+const drawViewer = (
+  p: p5,
+  element: ViewerElement,
+  config: SceneConfig | null
+) => {
+  const color = getStyle(config, "viewerColor", [0, 0, 255]); // Default Blue
+  const defaultRadius = getStyle(config, "defaultViewerRadius", 7.5);
+  p.fill(color);
   p.noStroke();
-  // Use radius from config if available later, default to 15 diameter
-  const radius = element.radius || 7.5;
+  const radius = element.radius ?? defaultRadius; // Use element radius or default from style
   p.ellipse(element.position.x, element.position.y, radius * 2, radius * 2);
 };
 
 // Draws a mirror element
-const drawMirror = (p: p5, element: MirrorElement) => {
-  p.stroke(100); // Grey for mirror
-  p.strokeWeight(element.thickness || 3); // Use thickness from config or default
+const drawMirror = (
+  p: p5,
+  element: MirrorElement,
+  config: SceneConfig | null
+) => {
+  const color = getStyle(config, "mirrorColor", [100]); // Default Grey
+  const defaultThickness = getStyle(config, "defaultMirrorThickness", 3);
+  p.stroke(color);
+  p.strokeWeight(element.thickness ?? defaultThickness); // Use element thickness or default from style
   p.line(element.start.x, element.start.y, element.end.x, element.end.y);
 };
 
 // Draws an object element as a triangle pointing right
-const drawObject = (p: p5, element: ObjectElement) => {
-  p.fill(255, 0, 0); // Red for object
+const drawObject = (
+  p: p5,
+  element: ObjectElement,
+  config: SceneConfig | null
+) => {
+  const color = getStyle(config, "objectColor", [255, 0, 0]); // Default Red
+  const defaultRadius = getStyle(config, "defaultObjectRadius", 10);
+  p.fill(color);
   p.noStroke();
-  const radius = element.radius || 10; // Use radius for size, default 10
+  const radius = element.radius ?? defaultRadius; // Use element radius or default from style
   const x = element.position.x;
   const y = element.position.y;
 
@@ -60,19 +87,31 @@ const drawObject = (p: p5, element: ObjectElement) => {
 const drawVirtualViewer = (
   p: p5,
   position: PointCoords,
-  originalViewer: ViewerElement
+  originalViewer: ViewerElement,
+  config: SceneConfig | null
 ) => {
-  p.stroke(0, 0, 255, 150); // Semi-transparent blue stroke
-  p.strokeWeight(1);
+  const color = getStyle(config, "virtualViewerColor", [0, 0, 255, 150]); // Default Semi-transparent Blue
+  const weight = getStyle(config, "virtualImageStrokeWeight", 1);
+  const defaultRadius = getStyle(config, "defaultViewerRadius", 7.5);
+
+  p.stroke(color);
+  p.strokeWeight(weight);
   p.noFill();
-  const radius = originalViewer.radius || 7.5;
+  const radius = originalViewer.radius ?? defaultRadius; // Use original radius or default from style
   p.ellipse(position.x, position.y, radius * 2, radius * 2);
 };
 
 // Draws the virtual image of the object as a triangle
-const drawVirtualObject = (p: p5, virtualObject: VirtualObjectElement) => {
-  p.stroke(255, 0, 0, 150); // Semi-transparent red stroke
-  p.strokeWeight(1);
+const drawVirtualObject = (
+  p: p5,
+  virtualObject: VirtualObjectElement,
+  config: SceneConfig | null
+) => {
+  const color = getStyle(config, "virtualObjectColor", [255, 0, 0, 150]); // Default Semi-transparent Red
+  const weight = getStyle(config, "virtualImageStrokeWeight", 1);
+
+  p.stroke(color);
+  p.strokeWeight(weight);
   p.noFill();
 
   if (
@@ -92,7 +131,7 @@ const drawVirtualObject = (p: p5, virtualObject: VirtualObjectElement) => {
     virtualObject.vertices.length === 1
   ) {
     const pos = virtualObject.vertices[0];
-    const radius = 5;
+    const radius = 5; // Keep this small radius fixed for the point marker? Or make configurable? Let's keep it fixed for now.
     p.ellipse(pos.x, pos.y, radius * 2, radius * 2);
     p.line(pos.x - 3, pos.y, pos.x + 3, pos.y);
     p.line(pos.x, pos.y - 3, pos.x, pos.y + 3);
@@ -141,10 +180,11 @@ const drawArrow = (
 };
 
 // NEW: Function specifically for drawing the ray path
-const drawRayPath = (p: p5, rayPath: RayPath) => {
-  const rayColor = p.color(243, 198, 35); // Darker Yellow
-  const arrowSize = 8; // Size of the arrowhead base
-  const rayWeight = 1.5; // Thickness of the ray lines
+const drawRayPath = (p: p5, rayPath: RayPath, config: SceneConfig | null) => {
+  const rayColorValue = getStyle(config, "rayColor", [243, 198, 35]); // Default Dark Yellow
+  const rayColor = p.color(rayColorValue); // Ensure it's a p5.Color object
+  const arrowSize = getStyle(config, "arrowSize", 8);
+  const rayWeight = getStyle(config, "rayWeight", 1.5);
 
   p.push(); // Isolate styles for the ray path
 
@@ -182,16 +222,17 @@ export const sketch = (p: p5) => {
   let onSceneUpdateCallback: ((newConfig: SceneConfig) => void) | null = null; // Store the callback
 
   // --- State for Dragging ---
-  let isDraggingViewer = false;
-  let dragOffset: PointCoords = { x: 0, y: 0 }; // Offset from mouse to viewer center
-  let viewerWasDragged = false; // Flag to track if a drag actually happened
+  let draggedElementId: string | null = null; // NEW: Store ID of dragged element
+  let dragOffset: PointCoords = { x: 0, y: 0 }; // Offset from mouse to element center
+  let elementWasDragged = false; // NEW: Flag to track if a drag actually happened
 
   // Function for React component to update sketch props
   p.updateWithProps = (props: SketchProps) => {
     if (props.sceneConfig) {
       // Only update if the incoming config is different (simple check)
       // This prevents overwriting the sketch's state during a drag
-      if (!isDraggingViewer) {
+      if (!draggedElementId) {
+        // Check if *any* element is being dragged
         currentSceneConfig = props.sceneConfig as SceneConfig;
       }
       // Update canvas size if provided
@@ -227,6 +268,7 @@ export const sketch = (p: p5) => {
       return;
     }
 
+    // Pass currentSceneConfig to drawing functions
     const viewer = currentSceneConfig.elements.find(
       (el): el is ViewerElement => el.type === "viewer"
     );
@@ -241,13 +283,13 @@ export const sketch = (p: p5) => {
     currentSceneConfig.elements.forEach((element) => {
       switch (element.type) {
         case "viewer":
-          drawViewer(p, element as ViewerElement);
+          drawViewer(p, element as ViewerElement, currentSceneConfig);
           break;
         case "mirror":
-          drawMirror(p, element as MirrorElement);
+          drawMirror(p, element as MirrorElement, currentSceneConfig);
           break;
         case "object":
-          drawObject(p, element as ObjectElement);
+          drawObject(p, element as ObjectElement, currentSceneConfig);
           break;
       }
     });
@@ -260,13 +302,13 @@ export const sketch = (p: p5) => {
           mirror
         );
         if (virtualViewerPos) {
-          drawVirtualViewer(p, virtualViewerPos, viewer);
+          drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig);
         }
       }
       if (object) {
         const virtualObject = calculateVirtualObject(object, mirror);
         if (virtualObject) {
-          drawVirtualObject(p, virtualObject);
+          drawVirtualObject(p, virtualObject, currentSceneConfig);
         }
       }
     }
@@ -281,7 +323,7 @@ export const sketch = (p: p5) => {
 
       // Call the dedicated drawing function if a path exists
       if (rayPath) {
-        drawRayPath(p, rayPath); // Call the new function here
+        drawRayPath(p, rayPath, currentSceneConfig); // Pass config
       }
     }
 
@@ -295,38 +337,41 @@ export const sketch = (p: p5) => {
 
   p.mousePressed = () => {
     if (!currentSceneConfig) return;
-    viewerWasDragged = false; // Reset drag flag
+    elementWasDragged = false; // Reset drag flag
+    draggedElementId = null; // Reset dragged element
 
-    const viewer = currentSceneConfig.elements.find(
-      (el): el is ViewerElement => el.type === "viewer"
-    );
+    // Find which element (viewer or object) is clicked
+    for (const element of currentSceneConfig.elements) {
+      if (element.type === "viewer" || element.type === "object") {
+        // Use radius for click detection (ensure object has a radius)
+        const radius = element.radius || (element.type === "viewer" ? 7.5 : 10);
+        const d = p.dist(
+          p.mouseX,
+          p.mouseY,
+          element.position.x,
+          element.position.y
+        );
 
-    if (viewer) {
-      const radius = viewer.radius || 7.5;
-      const d = p.dist(
-        p.mouseX,
-        p.mouseY,
-        viewer.position.x,
-        viewer.position.y
-      );
-
-      if (d < radius) {
-        isDraggingViewer = true;
-        dragOffset.x = viewer.position.x - p.mouseX;
-        dragOffset.y = viewer.position.y - p.mouseY;
-        return;
+        if (d < radius) {
+          draggedElementId = element.id; // Store the ID of the clicked element
+          dragOffset.x = element.position.x - p.mouseX;
+          dragOffset.y = element.position.y - p.mouseY;
+          return; // Stop checking once an element is found
+        }
       }
     }
   };
 
   p.mouseDragged = () => {
-    if (isDraggingViewer) {
-      const viewer = currentSceneConfig?.elements.find(
-        (el): el is ViewerElement => el.type === "viewer"
+    // Check if we are dragging *any* element
+    if (draggedElementId && currentSceneConfig) {
+      // Find the element being dragged
+      const elementToDrag = currentSceneConfig.elements.find(
+        (el) => el.id === draggedElementId
       );
-      // No need to find the mirror for basic dragging
 
-      if (viewer) {
+      // Check if the element exists and has a position (viewer or object)
+      if (elementToDrag && "position" in elementToDrag) {
         // 1. Calculate potential next position
         let nextX = p.mouseX + dragOffset.x;
         let nextY = p.mouseY + dragOffset.y;
@@ -335,20 +380,20 @@ export const sketch = (p: p5) => {
         nextX = p.constrain(nextX, 0, canvasWidth);
         nextY = p.constrain(nextY, 0, canvasHeight);
 
-        // 3. Update viewer position directly (no mirror check)
-        viewer.position.x = nextX;
-        viewer.position.y = nextY;
-        viewerWasDragged = true; // Mark that a drag occurred
+        // 3. Update the element's position directly
+        elementToDrag.position.x = nextX;
+        elementToDrag.position.y = nextY;
+        elementWasDragged = true; // Mark that a drag occurred
       }
     }
   };
 
   p.mouseReleased = () => {
-    // If we were dragging the viewer and a drag actually happened,
+    // If we were dragging an element and a drag actually happened,
     // notify the React component to update its state.
     if (
-      isDraggingViewer &&
-      viewerWasDragged &&
+      draggedElementId &&
+      elementWasDragged &&
       onSceneUpdateCallback &&
       currentSceneConfig
     ) {
@@ -357,8 +402,8 @@ export const sketch = (p: p5) => {
       onSceneUpdateCallback(configToSend);
     }
     // Stop dragging
-    isDraggingViewer = false;
-    viewerWasDragged = false; // Reset flag
+    draggedElementId = null;
+    elementWasDragged = false; // Reset flag
   };
 };
 

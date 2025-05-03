@@ -42,11 +42,27 @@ export type RayPath = {
   viewerPoint: PointCoords; // Ending point (viewer's position)
 };
 
+// NEW Interface for Style Parameters
+export interface StyleParams {
+  viewerColor?: number[];
+  objectColor?: number[];
+  mirrorColor?: number[];
+  rayColor?: number[];
+  virtualViewerColor?: number[];
+  virtualObjectColor?: number[];
+  defaultViewerRadius?: number;
+  defaultObjectRadius?: number;
+  defaultMirrorThickness?: number;
+  rayWeight?: number;
+  arrowSize?: number;
+  virtualImageStrokeWeight?: number;
+}
+
 // Union type for any scene element
 export type SceneElement = ViewerElement | MirrorElement | ObjectElement;
 
 export type SceneConfig = {
   elements: SceneElement[];
   canvasSize?: { width: number; height: number }; // Optional canvas size hint
-  // Add other scene-wide parameters later if needed
+  styleParams?: StyleParams; // Optional style parameters
 };

@@ -20,24 +20,39 @@ export default function Home() {
         id: "viewer-1",
         type: "viewer",
         position: { x: 150, y: 200 },
-        radius: 10, // Example radius
+        radius: 10, // Specific radius overrides default
       },
       {
         id: "mirror-1",
         type: "mirror",
         start: { x: 300, y: 50 },
         end: { x: 300, y: 350 },
-        thickness: 5, // Example thickness
+        thickness: 5, // Specific thickness overrides default
       },
       {
         id: "object-1",
         type: "object",
         position: { x: 150, y: 100 },
         shape: "triangle",
-        radius: 8, // Example radius for object
+        radius: 8, // Specific radius overrides default
       },
     ],
-    canvasSize: { width: 600, height: 400 }, // Pass canvas size if sketch needs it
+    canvasSize: { width: 600, height: 400 },
+    // Add default style parameters
+    styleParams: {
+      viewerColor: [0, 0, 255], // Blue
+      objectColor: [255, 0, 0], // Red
+      mirrorColor: [100], // Grey
+      rayColor: [243, 198, 35], // Dark Yellow
+      virtualViewerColor: [0, 0, 255, 150], // Semi-transparent Blue
+      virtualObjectColor: [255, 0, 0, 150], // Semi-transparent Red
+      defaultViewerRadius: 7.5,
+      defaultObjectRadius: 10,
+      defaultMirrorThickness: 3,
+      rayWeight: 1.5,
+      arrowSize: 8,
+      virtualImageStrokeWeight: 1,
+    },
   });
 
   // Define the callback function to update the state
@@ -69,7 +84,7 @@ export default function Home() {
         </div>
       </aside>
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Phase 4: Object Added.</p>
+        <p>Phase 7: Object Dragging & Style Config.</p>
       </footer>
     </div>
   );
