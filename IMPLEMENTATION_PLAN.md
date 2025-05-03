@@ -53,13 +53,19 @@
 
 ## Phase 4: Adding the Object
 
-*   **Goal:** Add a physical object using `PointCoords`.
+*   **Goal:** Add a physical object, calculate its virtual representation (including orientation), and draw both.
 *   **Tasks:**
-    - [ ] Define `ObjectElement` type (using `position: PointCoords`). Add object to `sceneConfig`.
-    - [ ] Add drawing logic for the object shape (using `.x`, `.y`).
-    - [ ] Use `calculateVirtualImagePosition` (which handles translation) for virtual object position. Draw virtual object.
-*   **Code Modules:** `lib/types.ts`, `sketch/mainSketch.ts`, `pages/index.tsx`.
-*   **Commit:** `feat: Add physical object and display its virtual image (using PointCoords)`
+    - [x] Define `ObjectElement` type (using `position: PointCoords`, add `shape: 'triangle'`, `radius`). Add object to `sceneConfig`.
+    - [x] Define `VirtualObjectElement` type to store reflected vertices.
+    - [x] Implement `calculateVirtualObject(object: ObjectElement, mirror: MirrorElement): VirtualObjectElement | null` in `simulation.ts`.
+        - Handles different shapes (point, triangle).
+        - For triangles, calculates original vertices based on position/radius.
+        - Uses `calculateVirtualImagePosition` to reflect each vertex.
+        - Returns structure containing reflected vertices.
+    - [x] Update `drawObject` in sketch to draw the specified shape (triangle).
+    - [x] In p5 sketch: Call `calculateVirtualObject`. Update `drawVirtualObject` to take `VirtualObjectElement` and draw using its vertices.
+*   **Code Modules:** `lib/types.ts`, `lib/simulation.ts`, `sketch/mainSketch.ts`, `pages/index.tsx`.
+*   **Commit:** `feat: Add object, calculate & draw virtual object with correct orientation`
 
 ## Phase 5: Ray Path Calculation (Single Reflection)
 

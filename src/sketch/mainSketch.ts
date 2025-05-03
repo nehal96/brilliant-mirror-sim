@@ -4,9 +4,14 @@ import {
   SceneElement,
   ViewerElement,
   MirrorElement,
+  ObjectElement,
   PointCoords,
+  VirtualObjectElement,
 } from "@/lib/types";
-import { calculateVirtualImagePosition } from "@/lib/simulation";
+import {
+  calculateVirtualImagePosition,
+  calculateVirtualObject,
+} from "@/lib/simulation";
 
 // Define the props structure the sketch expects
 interface SketchProps {
@@ -30,6 +35,25 @@ const drawMirror = (p: p5, element: MirrorElement) => {
   p.line(element.start.x, element.start.y, element.end.x, element.end.y);
 };
 
+// Draws an object element as a triangle pointing right
+const drawObject = (p: p5, element: ObjectElement) => {
+  p.fill(255, 0, 0); // Red for object
+  p.noStroke();
+  const radius = element.radius || 10; // Use radius for size, default 10
+  const x = element.position.x;
+  const y = element.position.y;
+
+  // Define triangle vertices relative to position
+  const x1 = x + radius; // Pointy vertex (right)
+  const y1 = y;
+  const x2 = x - radius / 2; // Top-left vertex
+  const y2 = y - radius;
+  const x3 = x - radius / 2; // Bottom-left vertex
+  const y3 = y + radius;
+
+  p.triangle(x1, y1, x2, y2, x3, y3);
+};
+
 // Draws the virtual image of the viewer
 const drawVirtualViewer = (
   p: p5,
@@ -38,9 +62,44 @@ const drawVirtualViewer = (
 ) => {
   p.stroke(0, 0, 255, 150); // Semi-transparent blue stroke
   p.strokeWeight(1);
-  p.noFill(); // No fill for virtual image
-  const radius = originalViewer.radius || 7.5; // Match original viewer size
+  p.noFill();
+  const radius = originalViewer.radius || 7.5;
   p.ellipse(position.x, position.y, radius * 2, radius * 2);
+};
+
+// Draws the virtual image of the object as a triangle
+const drawVirtualObject = (p: p5, virtualObject: VirtualObjectElement) => {
+  p.stroke(255, 0, 0, 150); // Semi-transparent red stroke
+  p.strokeWeight(1);
+  p.noFill();
+
+  if (
+    virtualObject.shape === "triangle" &&
+    virtualObject.vertices.length === 3
+  ) {
+    p.triangle(
+      virtualObject.vertices[0].x,
+      virtualObject.vertices[0].y,
+      virtualObject.vertices[1].x,
+      virtualObject.vertices[1].y,
+      virtualObject.vertices[2].x,
+      virtualObject.vertices[2].y
+    );
+  } else if (
+    virtualObject.shape === "point" &&
+    virtualObject.vertices.length === 1
+  ) {
+    const pos = virtualObject.vertices[0];
+    const radius = 5;
+    p.ellipse(pos.x, pos.y, radius * 2, radius * 2);
+    p.line(pos.x - 3, pos.y, pos.x + 3, pos.y);
+    p.line(pos.x, pos.y - 3, pos.x, pos.y + 3);
+  } else {
+    console.warn(
+      "Cannot draw virtual object: Invalid shape or vertex count.",
+      virtualObject
+    );
+  }
 };
 
 // Helper function to get line equation Ax + By + C = 0 from two points
@@ -71,7 +130,7 @@ export const sketch = (p: p5) => {
       // Only update if the incoming config is different (simple check)
       // This prevents overwriting the sketch's state during a drag
       if (!isDraggingViewer) {
-        currentSceneConfig = props.sceneConfig;
+        currentSceneConfig = props.sceneConfig as SceneConfig;
       }
       // Update canvas size if provided
       if (props.sceneConfig.canvasSize) {
@@ -112,6 +171,9 @@ export const sketch = (p: p5) => {
     const mirror = currentSceneConfig.elements.find(
       (el): el is MirrorElement => el.type === "mirror"
     );
+    const object = currentSceneConfig.elements.find(
+      (el): el is ObjectElement => el.type === "object"
+    );
 
     // --- Draw Static Elements ---
     currentSceneConfig.elements.forEach((element) => {
@@ -122,18 +184,28 @@ export const sketch = (p: p5) => {
         case "mirror":
           drawMirror(p, element as MirrorElement);
           break;
+        case "object":
+          drawObject(p, element as ObjectElement);
+          break;
       }
     });
 
-    // --- Calculate and Draw Virtual Image ---
-    if (viewer && mirror) {
-      const virtualViewerPos = calculateVirtualImagePosition(
-        viewer.position,
-        mirror
-      );
-
-      if (virtualViewerPos) {
-        drawVirtualViewer(p, virtualViewerPos, viewer);
+    // --- Calculate and Draw Virtual Images ---
+    if (mirror) {
+      if (viewer) {
+        const virtualViewerPos = calculateVirtualImagePosition(
+          viewer.position,
+          mirror
+        );
+        if (virtualViewerPos) {
+          drawVirtualViewer(p, virtualViewerPos, viewer);
+        }
+      }
+      if (object) {
+        const virtualObject = calculateVirtualObject(object, mirror);
+        if (virtualObject) {
+          drawVirtualObject(p, virtualObject);
+        }
       }
     }
 
@@ -166,6 +238,7 @@ export const sketch = (p: p5) => {
         isDraggingViewer = true;
         dragOffset.x = viewer.position.x - p.mouseX;
         dragOffset.y = viewer.position.y - p.mouseY;
+        return;
       }
     }
   };

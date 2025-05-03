@@ -19,10 +19,24 @@ export interface MirrorElement {
   thickness?: number; // Optional: for drawing thickness
 }
 
-// Add other element types here later (e.g., ObjectElement)
+export interface ObjectElement {
+  id: string;
+  type: "object";
+  position: PointCoords; // Center position
+  shape?: "point" | "triangle"; // Define the shape
+  radius?: number; // Used for size (e.g., triangle height/base related)
+}
+
+export interface VirtualObjectElement {
+  id: string;
+  type: "virtualObject";
+  shape: "point" | "triangle"; // Match original shape
+  vertices: PointCoords[]; // Store the reflected vertices
+  originalObjectId: string; // Keep track of the source
+}
 
 // Union type for any scene element
-export type SceneElement = ViewerElement | MirrorElement; // Add | ObjectElement later
+export type SceneElement = ViewerElement | MirrorElement | ObjectElement;
 
 export type SceneConfig = {
   elements: SceneElement[];

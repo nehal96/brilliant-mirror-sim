@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import SimulationCanvas from "@/components/SimulationCanvas";
-import { SceneConfig, ViewerElement, MirrorElement } from "@/lib/types";
+import { SceneConfig, SceneElement } from "@/lib/types";
 import { Geist, Geist_Mono } from "next/font/google";
 
 // Keep font setup
@@ -29,7 +29,13 @@ export default function Home() {
         end: { x: 300, y: 350 },
         thickness: 5, // Example thickness
       },
-      // Add more elements here if needed
+      {
+        id: "object-1",
+        type: "object",
+        position: { x: 150, y: 100 },
+        shape: "triangle",
+        radius: 8, // Example radius for object
+      },
     ],
     canvasSize: { width: 600, height: 400 }, // Pass canvas size if sketch needs it
   });
@@ -37,7 +43,7 @@ export default function Home() {
   // Define the callback function to update the state
   const handleSceneUpdate = useCallback((newConfig: SceneConfig) => {
     console.log("React updating sceneConfig state...");
-    setSceneConfig(newConfig);
+    setSceneConfig(newConfig as SceneConfig);
   }, []); // Empty dependency array means the function reference is stable
 
   return (
@@ -63,7 +69,7 @@ export default function Home() {
         </div>
       </aside>
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Phase 3: Viewer Dragging Implemented.</p>
+        <p>Phase 4: Object Added.</p>
       </footer>
     </div>
   );

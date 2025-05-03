@@ -1,5 +1,10 @@
 import { Point, Segment, Line, Vector } from "@flatten-js/core"; // Import Vector
-import { PointCoords, MirrorElement } from "./types";
+import {
+  PointCoords,
+  MirrorElement,
+  ObjectElement,
+  VirtualObjectElement,
+} from "./types";
 
 /**
  * Calculates the position of the virtual image of a point reflected in a mirror.
@@ -68,6 +73,113 @@ export function calculateVirtualImagePosition(
     return virtualImagePosCoords;
   } catch (error) {
     console.error("Error calculating virtual image position:", error);
+    return null;
+  }
+}
+
+/**
+ * Calculates the virtual representation of an object reflected in a mirror.
+ * For shapes like triangles, it reflects the vertices to capture orientation change.
+ *
+ * @param object The original object element.
+ * @param mirror The mirror element definition.
+ * @returns The virtual object representation with reflected points, or null if calculation fails.
+ */
+export function calculateVirtualObject(
+  object: ObjectElement,
+  mirror: MirrorElement
+): VirtualObjectElement | null {
+  const shape = object.shape || "point"; // Default to point if shape isn't specified
+  const virtualVertices: PointCoords[] = [];
+
+  if (shape === "triangle") {
+    const radius = object.radius || 10; // Use radius for triangle size
+    const origX = object.position.x;
+    const origY = object.position.y;
+
+    // Define original vertices relative to object center
+    const originalVertices: PointCoords[] = [
+      { x: origX + radius, y: origY }, // Pointy vertex
+      { x: origX - radius / 2, y: origY - radius }, // Top-left base
+      { x: origX - radius / 2, y: origY + radius }, // Bottom-left base
+    ];
+
+    // Reflect each vertex
+    for (const vertex of originalVertices) {
+      const virtualVertex = calculateVirtualImagePosition(vertex, mirror);
+      if (!virtualVertex) {
+        console.warn("Failed to calculate a virtual vertex for the object.");
+        return null; // If any vertex fails, the virtual object is incomplete
+      }
+      virtualVertices.push(virtualVertex);
+    }
+  } else {
+    // 'point' or default case
+    const virtualCenter = calculateVirtualImagePosition(
+      object.position,
+      mirror
+    );
+    if (!virtualCenter) {
+      console.warn(
+        "Failed to calculate virtual position for the point object."
+      );
+      return null;
+    }
+    // For a point, the 'vertices' array just contains the center position
+    virtualVertices.push(virtualCenter);
+  }
+
+  // Construct the virtual object representation
+  const virtualObject: VirtualObjectElement = {
+    id: `virtual-${object.id}`,
+    type: "virtualObject",
+    shape: shape,
+    vertices: virtualVertices,
+    originalObjectId: object.id,
+  };
+
+  return virtualObject;
+}
+
+/**
+ * Calculates the vertices of the virtual image of a triangle object reflected in a mirror.
+ *
+ * @param object The object element (must have position and radius).
+ * @param mirror The mirror element definition.
+ * @returns An array of 3 PointCoords for the virtual vertices, or null if calculation fails.
+ */
+export function calculateVirtualTriangleVertices(
+  object: ObjectElement,
+  mirror: MirrorElement
+): PointCoords[] | null {
+  const radius = object.radius || 10; // Use same default as drawing
+  const x = object.position.x;
+  const y = object.position.y;
+
+  // 1. Define physical triangle vertices relative to object position
+  const physicalVertices: PointCoords[] = [
+    { x: x + radius, y: y }, // Pointy vertex (right)
+    { x: x - radius / 2, y: y - radius }, // Top-left vertex
+    { x: x - radius / 2, y: y + radius }, // Bottom-left vertex
+  ];
+
+  // 2. Reflect each physical vertex
+  const virtualVertices: PointCoords[] = [];
+  for (const vertex of physicalVertices) {
+    const virtualVertex = calculateVirtualImagePosition(vertex, mirror);
+    if (!virtualVertex) {
+      console.warn("Failed to calculate virtual vertex for the object.");
+      return null; // If any vertex fails, return null
+    }
+    virtualVertices.push(virtualVertex);
+  }
+
+  // 3. Return the array of virtual vertices
+  if (virtualVertices.length === 3) {
+    return virtualVertices;
+  } else {
+    // Should not happen if loop completes successfully
+    console.error("Incorrect number of virtual vertices calculated.");
     return null;
   }
 }
