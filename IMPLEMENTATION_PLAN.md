@@ -83,7 +83,8 @@
 *   **Commit:** `feat: Calculate single-reflection ray path points using @flatten-js/core (with coord translation)`
 
 ## Phase 6: Ray Path Drawing
-*   **Goal:** Draw the calculated ray path from `RayPath` data.
+
+*   **Goal:** Visualize the calculated ray path in the p5 sketch.
 *   **Tasks:**
     - [x] In p5 sketch, use result from Phase 5 (`calculateSingleReflectionPath`).
     - [x] If valid path exists:
@@ -93,30 +94,40 @@
 *   **Code Modules:** `sketch/mainSketch.ts`.
 *   **Commit:** `feat: Draw solid ray path with arrows`
 
-## Phase 7: Object Interaction (Drag & Drop)
+## Phase 7: Object Dragging & Style Configuration
 
-*   **Goal:** Allow dragging the object with constraints, using `PointCoords`.
+*   **Goal:** Enable dragging for the object element (reusing viewer logic) and centralize styling configuration.
 *   **Tasks:**
-    - [ ] Extend Drag Logic from Phase 3 for the object element.
-    - [ ] Apply boundary checks (involving temporary translation to `Flatten.Point`).
-    - [ ] Ensure state update uses `PointCoords` and happens on drag end.
-*   **Code Modules:** `pages/index.tsx`, `components/SimulationCanvas.tsx`, `sketch/mainSketch.ts`, `hooks/useDraggableElement.ts`.
-*   **Commit:** `feat: Enable dragging object with boundary checks and state update on drag end (using PointCoords)`
+    - [x] Refactored drag state variables (`draggedElementId`, `elementWasDragged`) in `sketch/mainSketch.ts` to be generic.
+    - [x] Updated `mousePressed`, `mouseDragged`, `mouseReleased` in `sketch/mainSketch.ts` to detect and move either the viewer or the object based on their ID.
+    - [x] Applied canvas boundary checks during drag in `mouseDragged`.
+    - [x] Ensured `onSceneUpdate` callback is triggered correctly on drag end for the moved element.
+    - [x] Defined `StyleParams` interface in `lib/types.ts` for visual parameters.
+    - [x] Added `styleParams` object with default values to the initial `SceneConfig` in `pages/index.tsx`.
+    - [x] Added `getStyle` helper function in `sketch/mainSketch.ts`.
+    - [x] Updated all drawing functions (`drawViewer`, `drawObject`, `drawMirror`, `drawVirtualViewer`, `drawVirtualObject`, `drawRayPath`, `drawArrow`) in `sketch/mainSketch.ts` to accept the `SceneConfig` and use `styleParams` values with appropriate fallbacks.
+*   **Code Modules:** `lib/types.ts`, `pages/index.tsx`, `sketch/mainSketch.ts`.
+*   **Commit:** `feat: Enable object dragging and centralize style configuration`
 
 ## Phase 8: UI Controls & Visualization Options
 
 *   **Goal:** Add basic React controls (toggles) for visualization clarity before adding multi-mirror complexity.
 *   **Tasks:**
-    - [ ] Add `visualizationParams` to `SceneConfig` (`showRayPaths`, `showVirtualImages`).
-    - [ ] Create `ControlPanel.tsx` with checkboxes bound to state managing these params.
-    - [ ] Update main page state and pass params down.
-    - [ ] Modify p5 sketch drawing logic to conditionally draw based on flags.
+    - [x] Define `ControlParams` interface in `lib/types.ts` (e.g., `showRayPaths`).
+    - [x] Add optional `controls` field of type `ControlParams` to `SceneConfig` in `lib/types.ts`.
+    - [x] Add default `controls` object (e.g., `{ showRayPaths: true }`) to the initial `SceneConfig` in `pages/index.tsx`.
+    - [x] Create `ControlPanel.tsx` component with a checkbox bound to state managing the `showRayPaths` flag. It should accept `controls` and `onControlChange` props.
+    - [x] Update main page (`pages/index.tsx`) state management:
+        - [x] Add `handleControlChange` callback to update the `controls` part of the `sceneConfig` state.
+        - [x] Pass `sceneConfig.controls` and `handleControlChange` down to `ControlPanel`.
+    - [x] Pass the full `sceneConfig` (including `controls`) down to `SimulationCanvas` and into the sketch via `updateWithProps`.
+    - [x] Modify p5 sketch drawing logic (`p.draw`, `drawRayPath`) to conditionally draw based on the `showRayPaths` flag read from `currentSceneConfig.controls`. (Virtual images remain unaffected by this toggle).
 *   **Code Modules:** `lib/types.ts`, `components/ControlPanel.tsx`, `pages/index.tsx`, `sketch/mainSketch.ts`.
-*   **Commit:** `feat: Add UI toggles for showing/hiding rays and virtual images`
+*   **Commit:** `feat: Add UI toggle for showing/hiding ray paths using separate controls state`
 
 ## Phase 9: Parallel Mirrors (Multiple Reflections) - **PRIORITY**
 
-*   **Goal:** Implement multiple reflections, managing coordinate translations.
+*   **Goal:** Implement multiple reflections between two parallel mirrors, managing coordinate translations and ray path generation.
 *   **Tasks:**
     - [ ] Update `simulationParams`, add second mirror (`PointCoords`) to `sceneConfig`.
     - [ ] Refactor `simulation.ts`: `getAllVirtualImages(...)`, `tracePathToVirtualImage(...)`.

@@ -58,6 +58,10 @@ export interface StyleParams {
   virtualImageStrokeWeight?: number;
 }
 
+export interface ControlParams {
+  showRayPaths?: boolean;
+}
+
 // Union type for any scene element
 export type SceneElement = ViewerElement | MirrorElement | ObjectElement;
 
@@ -65,4 +69,5 @@ export type SceneConfig = {
   elements: SceneElement[];
   canvasSize?: { width: number; height: number }; // Optional canvas size hint
   styleParams?: StyleParams; // Optional style parameters
+  controls?: ControlParams; // Optional control parameters
 };

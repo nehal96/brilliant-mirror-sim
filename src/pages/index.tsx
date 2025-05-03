@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import SimulationCanvas from "@/components/SimulationCanvas";
-import { SceneConfig, SceneElement } from "@/lib/types";
+import ControlPanel from "@/components/ControlPanel";
+import { SceneConfig, ControlParams } from "@/lib/types";
 import { Geist, Geist_Mono } from "next/font/google";
 
 // Keep font setup
@@ -53,13 +54,36 @@ export default function Home() {
       arrowSize: 8,
       virtualImageStrokeWeight: 1,
     },
+    // Add default control parameters
+    controls: {
+      showRayPaths: true,
+    },
   });
 
   // Define the callback function to update the state
   const handleSceneUpdate = useCallback((newConfig: SceneConfig) => {
-    console.log("React updating sceneConfig state...");
-    setSceneConfig(newConfig as SceneConfig);
+    console.log("React updating sceneConfig state (drag)...");
+    // Ensure controls are preserved during drag updates if not explicitly changed
+    setSceneConfig((prevConfig) => ({
+      ...newConfig,
+      controls: prevConfig.controls, // Keep existing controls
+      styleParams: prevConfig.styleParams, // Keep existing styles
+    }));
   }, []); // Empty dependency array means the function reference is stable
+
+  const handleControlChange = useCallback(
+    (controlUpdates: Partial<ControlParams>) => {
+      console.log("React updating controls state...");
+      setSceneConfig((prevConfig) => ({
+        ...prevConfig,
+        controls: {
+          ...(prevConfig.controls || {}), // Keep existing controls
+          ...controlUpdates, // Apply updates
+        },
+      }));
+    },
+    []
+  );
 
   return (
     <div
@@ -76,15 +100,16 @@ export default function Home() {
       </main>
       <aside className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-4">Controls</h2>
-        <div className="p-4 border border-dashed border-gray-400 rounded">
-          <p className="text-gray-500">UI Controls will appear here.</p>
-          <pre className="text-xs mt-4 p-2 bg-gray-100 rounded overflow-auto max-h-60">
-            {JSON.stringify(sceneConfig, null, 2)}
-          </pre>
-        </div>
+        <ControlPanel
+          controls={sceneConfig.controls}
+          onControlChange={handleControlChange}
+        />
+        <pre className="text-xs mt-4 p-2 bg-gray-100 rounded overflow-auto max-h-60">
+          {JSON.stringify(sceneConfig, null, 2)}
+        </pre>
       </aside>
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Phase 7: Object Dragging & Style Config.</p>
+        <p>Phase 8: UI Controls (Ray Path Toggle).</p>
       </footer>
     </div>
   );

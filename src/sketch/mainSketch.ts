@@ -1,7 +1,6 @@
 import p5 from "p5";
 import {
   SceneConfig,
-  SceneElement,
   ViewerElement,
   MirrorElement,
   ObjectElement,
@@ -294,36 +293,41 @@ export const sketch = (p: p5) => {
       }
     });
 
-    // --- Calculate and Draw Virtual Images ---
-    if (mirror) {
-      if (viewer) {
-        const virtualViewerPos = calculateVirtualImagePosition(
-          viewer.position,
-          mirror
-        );
-        if (virtualViewerPos) {
-          drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig);
-        }
-      }
-      if (object) {
-        const virtualObject = calculateVirtualObject(object, mirror);
-        if (virtualObject) {
-          drawVirtualObject(p, virtualObject, currentSceneConfig);
-        }
+    // --- Calculate and Draw Virtual Images (if applicable) ---
+    if (object && mirror) {
+      const virtualObject = calculateVirtualObject(object, mirror);
+      if (virtualObject) {
+        drawVirtualObject(p, virtualObject, currentSceneConfig); // Pass config
       }
     }
 
-    // --- Calculate and Draw Ray Path ---
-    if (object && viewer && mirror) {
-      const rayPath = calculateSingleReflectionPath(
-        object.position,
+    // Calculate and draw virtual viewer (always if possible)
+    if (viewer && mirror) {
+      const virtualViewerPos = calculateVirtualImagePosition(
         viewer.position,
         mirror
       );
+      if (virtualViewerPos) {
+        drawVirtualViewer(p, virtualViewerPos, viewer, currentSceneConfig); // Pass config
+      }
+    }
 
-      // Call the dedicated drawing function if a path exists
-      if (rayPath) {
-        drawRayPath(p, rayPath, currentSceneConfig); // Pass config
+    // Check the control flag before calculating and drawing rays
+    const shouldShowRays = currentSceneConfig.controls?.showRayPaths ?? true;
+
+    if (shouldShowRays) {
+      // Calculate and Draw Ray Path only if rays are shown
+      if (object && viewer && mirror) {
+        const rayPath = calculateSingleReflectionPath(
+          object.position,
+          viewer.position,
+          mirror
+        );
+
+        // Call the dedicated drawing function if a path exists
+        if (rayPath) {
+          drawRayPath(p, rayPath, currentSceneConfig); // Pass config
+        }
       }
     }
 
