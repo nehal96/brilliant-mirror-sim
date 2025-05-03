@@ -143,17 +143,6 @@ const drawVirtualObject = (
   }
 };
 
-// Helper function to get line equation Ax + By + C = 0 from two points
-const getLineEquation = (
-  start: PointCoords,
-  end: PointCoords
-): { A: number; B: number; C: number } => {
-  const A = end.y - start.y;
-  const B = start.x - end.x;
-  const C = A * start.x + B * start.y;
-  return { A, B, C };
-};
-
 // Helper function to draw an arrow head at the end of a line segment
 const drawArrow = (
   p: p5,

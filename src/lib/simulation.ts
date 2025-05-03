@@ -1,4 +1,4 @@
-import { Point, Segment, Line, Vector, Utils } from "@flatten-js/core"; // Import Vector and Utils
+import { Point, Segment, Line, Vector } from "@flatten-js/core"; // Import Vector and Utils
 import {
   PointCoords,
   MirrorElement,
@@ -140,49 +140,6 @@ export function calculateVirtualObject(
   };
 
   return virtualObject;
-}
-
-/**
- * Calculates the vertices of the virtual image of a triangle object reflected in a mirror.
- *
- * @param object The object element (must have position and radius).
- * @param mirror The mirror element definition.
- * @returns An array of 3 PointCoords for the virtual vertices, or null if calculation fails.
- */
-export function calculateVirtualTriangleVertices(
-  object: ObjectElement,
-  mirror: MirrorElement
-): PointCoords[] | null {
-  const radius = object.radius || 10; // Use same default as drawing
-  const x = object.position.x;
-  const y = object.position.y;
-
-  // 1. Define physical triangle vertices relative to object position
-  const physicalVertices: PointCoords[] = [
-    { x: x + radius, y: y }, // Pointy vertex (right)
-    { x: x - radius / 2, y: y - radius }, // Top-left vertex
-    { x: x - radius / 2, y: y + radius }, // Bottom-left vertex
-  ];
-
-  // 2. Reflect each physical vertex
-  const virtualVertices: PointCoords[] = [];
-  for (const vertex of physicalVertices) {
-    const virtualVertex = calculateVirtualImagePosition(vertex, mirror);
-    if (!virtualVertex) {
-      console.warn("Failed to calculate virtual vertex for the object.");
-      return null; // If any vertex fails, return null
-    }
-    virtualVertices.push(virtualVertex);
-  }
-
-  // 3. Return the array of virtual vertices
-  if (virtualVertices.length === 3) {
-    return virtualVertices;
-  } else {
-    // Should not happen if loop completes successfully
-    console.error("Incorrect number of virtual vertices calculated.");
-    return null;
-  }
 }
 
 /**
