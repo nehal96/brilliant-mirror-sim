@@ -4,6 +4,7 @@ import {
   MirrorElement,
   ObjectElement,
   VirtualObjectElement,
+  RayPath,
 } from "./types";
 
 /**
@@ -181,6 +182,85 @@ export function calculateVirtualTriangleVertices(
     // Should not happen if loop completes successfully
     console.error("Incorrect number of virtual vertices calculated.");
     return null;
+  }
+}
+
+/**
+ * Calculates the path of a light ray from an object to a viewer,
+ * reflecting off a single mirror segment according to the law of reflection
+ * (using the virtual image method).
+ * Returns null if the reflection point is not on the mirror segment,
+ * if the virtual image cannot be calculated, or if no valid intersection exists.
+ *
+ * @param objPosCoords The object's position {x, y}.
+ * @param viewPosCoords The viewer's position {x, y}.
+ * @param mirror The mirror element definition.
+ * @returns A RayPath object containing the points {x, y}, or null if no valid path exists.
+ */
+export function calculateSingleReflectionPath(
+  objPosCoords: PointCoords,
+  viewPosCoords: PointCoords,
+  mirror: MirrorElement
+): RayPath | null {
+  // 1. Calculate virtual object position
+  const virtualObjPosCoords = calculateVirtualImagePosition(
+    objPosCoords,
+    mirror
+  );
+
+  if (!virtualObjPosCoords) {
+    // Cannot calculate path if virtual image doesn't exist
+    return null;
+  }
+
+  try {
+    // --- Translate inputs for @flatten-js/core ---
+    const viewerPoint = new Point(viewPosCoords.x, viewPosCoords.y);
+    const virtualObjectPoint = new Point(
+      virtualObjPosCoords.x,
+      virtualObjPosCoords.y
+    );
+    const mirrorStartPoint = new Point(mirror.start.x, mirror.start.y);
+    const mirrorEndPoint = new Point(mirror.end.x, mirror.end.y);
+
+    // 2. Define the line of sight segment (Viewer <-> Virtual Object)
+    // This segment represents the path the light *appears* to take from the virtual object
+    const sightLineSegment = new Segment(viewerPoint, virtualObjectPoint);
+
+    // 3. Define the physical mirror segment
+    const mirrorSegment = new Segment(mirrorStartPoint, mirrorEndPoint);
+
+    // 4. Find intersection between the sight line and the physical mirror segment
+    // The intersect method for segments checks if the intersection point lies on both segments.
+    const intersectionPoints: Point[] =
+      mirrorSegment.intersect(sightLineSegment);
+
+    // 5. Validate intersection
+    // We need exactly one intersection point for a valid reflection off this mirror segment.
+    if (intersectionPoints.length !== 1) {
+      // No single, valid intersection point on the mirror segment for this viewer/object pair
+      return null;
+    }
+
+    const reflectionPoint: Point = intersectionPoints[0];
+
+    // --- Translate intersection point back to PointCoords ---
+    const reflectionPointCoords: PointCoords = {
+      x: reflectionPoint.x,
+      y: reflectionPoint.y,
+    };
+
+    // 6. Construct and return the RayPath using plain coordinate objects
+    const path: RayPath = {
+      objectPoint: objPosCoords, // Start at the actual object
+      mirrorPoint: reflectionPointCoords, // Reflect off the calculated point on the mirror
+      viewerPoint: viewPosCoords, // End at the actual viewer
+    };
+
+    return path;
+  } catch (error) {
+    console.error("Error calculating single reflection path:", error);
+    return null; // Return null on any calculation error
   }
 }
 

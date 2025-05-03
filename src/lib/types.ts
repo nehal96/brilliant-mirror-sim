@@ -35,6 +35,13 @@ export interface VirtualObjectElement {
   originalObjectId: string; // Keep track of the source
 }
 
+// NEW TYPE for Ray Path
+export type RayPath = {
+  objectPoint: PointCoords; // Starting point (object's position)
+  mirrorPoint: PointCoords; // Reflection point on the mirror surface
+  viewerPoint: PointCoords; // Ending point (viewer's position)
+};
+
 // Union type for any scene element
 export type SceneElement = ViewerElement | MirrorElement | ObjectElement;
 

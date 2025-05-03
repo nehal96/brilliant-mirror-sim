@@ -68,27 +68,30 @@
 *   **Commit:** `feat: Add object, calculate & draw virtual object with correct orientation`
 
 ## Phase 5: Ray Path Calculation (Single Reflection)
-
 *   **Goal:** Calculate ray path points using `@flatten-js/core`, managing coordinate translation.
 *   **Tasks:**
-    - [ ] Implement `calculateSingleReflectionPath(objPosCoords: PointCoords, viewPosCoords: PointCoords, mirror: MirrorElement): RayPath | null` in `lib/simulation.ts` (where `RayPath` might contain `PointCoords` or library types depending on preference - decide and be consistent).
-        - [ ] **Translate Inputs:** Convert input `PointCoords` and mirror coords to `Flatten.Point`/`Segment`/`Line`.
-        - [ ] Calculate virtual image position (`Flatten.Point`).
-        - [ ] Define viewer-virtual segment (`Flatten.Segment`).
-        - [ ] **Leverage `@flatten-js/core`:** Find intersection (`Flatten.Point`) using verified library methods.
-        - [ ] **Leverage `@flatten-js/core`:** Check if intersection point is on mirror segment using verified library methods.
-        - [ ] If valid, construct path data. **Translate points back to `PointCoords` if `RayPath` uses plain objects.**
-        - [ ] Return `RayPath` or `null`.
-*   **Code Modules:** `lib/simulation.ts`, `lib/types.ts`, `sketch/mainSketch.ts`.
+    - [x] Implement `calculateSingleReflectionPath(objPosCoords: PointCoords, viewPosCoords: PointCoords, mirror: MirrorElement): RayPath | null` in `lib/simulation.ts`.
+        - [x] **Translate Inputs:** Convert input `PointCoords` (viewer, mirror start/end) and calculated virtual object `PointCoords` to `Flatten.Point`/`Segment`.
+        - [x] Calculate virtual object position (`PointCoords`) using `calculateVirtualImagePosition`.
+        - [x] Define viewer-virtual segment (`Flatten.Segment`).
+        - [x] Define mirror segment (`Flatten.Segment`).
+        - [x] **Leverage `@flatten-js/core`:** Find intersection (`Flatten.Point`) between viewer-virtual segment and mirror segment using `Segment.intersect()`.
+        - [x] **Leverage `@flatten-js/core`:** Check if intersection point is on mirror segment (handled implicitly by `Segment.intersect()`).
+        - [x] If valid (one intersection), construct path data. **Translate intersection point back to `PointCoords`**.
+        - [x] Return `RayPath` (containing `PointCoords`) or `null`.
+*   **Code Modules:** `lib/simulation.ts`, `lib/types.ts`.
 *   **Commit:** `feat: Calculate single-reflection ray path points using @flatten-js/core (with coord translation)`
 
 ## Phase 6: Ray Path Drawing
-
 *   **Goal:** Draw the calculated ray path from `RayPath` data.
 *   **Tasks:**
-    - [ ] In p5 sketch, use result from Phase 5. If valid path exists: Draw lines using the `.x`, `.y` properties of the `PointCoords` within the `RayPath` structure.
+    - [x] In p5 sketch, use result from Phase 5 (`calculateSingleReflectionPath`).
+    - [x] If valid path exists:
+        - [x] Create `drawArrow` helper function.
+        - [x] Create `drawRayPath` helper function.
+        - [x] Draw solid lines with arrowheads using the `.x`, `.y` properties of the `PointCoords` within the `RayPath` structure.
 *   **Code Modules:** `sketch/mainSketch.ts`.
-*   **Commit:** `feat: Draw solid ray path and dotted perceived path (from PointCoords)`
+*   **Commit:** `feat: Draw solid ray path with arrows`
 
 ## Phase 7: Object Interaction (Drag & Drop)
 

@@ -7,10 +7,12 @@ import {
   ObjectElement,
   PointCoords,
   VirtualObjectElement,
+  RayPath,
 } from "@/lib/types";
 import {
   calculateVirtualImagePosition,
   calculateVirtualObject,
+  calculateSingleReflectionPath,
 } from "@/lib/simulation";
 
 // Define the props structure the sketch expects
@@ -113,6 +115,66 @@ const getLineEquation = (
   return { A, B, C };
 };
 
+// Helper function to draw an arrow head at the end of a line segment
+const drawArrow = (
+  p: p5,
+  start: PointCoords,
+  end: PointCoords,
+  color: p5.Color,
+  size: number
+) => {
+  p.push(); // Isolate drawing styles
+  p.stroke(color);
+  p.fill(color);
+  p.strokeWeight(1); // Use a fixed stroke weight for the arrowhead
+
+  const angle = p.atan2(end.y - start.y, end.x - start.x); // Angle of the line segment
+  p.translate(end.x, end.y); // Move the origin to the endpoint 'end'
+  p.rotate(angle); // Rotate the coordinate system to align with the line
+
+  // Draw the triangle shape for the arrowhead
+  // Points are relative to the endpoint 'end' after translation and rotation
+  // The triangle points back along the line direction
+  p.triangle(-size, size / 2, -size, -size / 2, 0, 0);
+
+  p.pop(); // Restore original drawing styles and coordinate system
+};
+
+// NEW: Function specifically for drawing the ray path
+const drawRayPath = (p: p5, rayPath: RayPath) => {
+  const rayColor = p.color(243, 198, 35); // Darker Yellow
+  const arrowSize = 8; // Size of the arrowhead base
+  const rayWeight = 1.5; // Thickness of the ray lines
+
+  p.push(); // Isolate styles for the ray path
+
+  p.stroke(rayColor);
+  p.strokeWeight(rayWeight);
+  p.noFill(); // Don't fill the lines themselves
+
+  // Draw line segment from object to mirror
+  p.line(
+    rayPath.objectPoint.x,
+    rayPath.objectPoint.y,
+    rayPath.mirrorPoint.x,
+    rayPath.mirrorPoint.y
+  );
+  // Draw arrow pointing to the mirror reflection point
+  drawArrow(p, rayPath.objectPoint, rayPath.mirrorPoint, rayColor, arrowSize);
+
+  // Draw line segment from mirror to viewer
+  p.line(
+    rayPath.mirrorPoint.x,
+    rayPath.mirrorPoint.y,
+    rayPath.viewerPoint.x,
+    rayPath.viewerPoint.y
+  );
+  // Draw arrow pointing to the viewer
+  drawArrow(p, rayPath.mirrorPoint, rayPath.viewerPoint, rayColor, arrowSize);
+
+  p.pop(); // Restore previous styles
+};
+
 export const sketch = (p: p5) => {
   let currentSceneConfig: SceneConfig | null = null;
   let canvasWidth = 600; // Default width
@@ -206,6 +268,20 @@ export const sketch = (p: p5) => {
         if (virtualObject) {
           drawVirtualObject(p, virtualObject);
         }
+      }
+    }
+
+    // --- Calculate and Draw Ray Path ---
+    if (object && viewer && mirror) {
+      const rayPath = calculateSingleReflectionPath(
+        object.position,
+        viewer.position,
+        mirror
+      );
+
+      // Call the dedicated drawing function if a path exists
+      if (rayPath) {
+        drawRayPath(p, rayPath); // Call the new function here
       }
     }
 
