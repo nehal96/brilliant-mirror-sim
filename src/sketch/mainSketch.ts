@@ -246,16 +246,6 @@ export const sketch = (p: p5) => {
       if (!draggedElementId) {
         currentSceneConfig = props.sceneConfig as SceneConfig;
       }
-      if (props.sceneConfig.canvasSize) {
-        canvasWidth = props.sceneConfig.canvasSize.width;
-        canvasHeight = props.sceneConfig.canvasSize.height;
-        if (
-          p.canvas &&
-          (p.width !== canvasWidth || p.height !== canvasHeight)
-        ) {
-          p.resizeCanvas(canvasWidth, canvasHeight);
-        }
-      }
     }
     onSceneUpdateCallback = props.onSceneUpdate || null;
   };
